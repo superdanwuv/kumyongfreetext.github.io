@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>자막 프리뷰어 - 스마트 파싱</title>
+    <title>자막 프리뷰어_꿈용판</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
@@ -212,7 +212,7 @@
     let maxTime = 10;
     let hideTimer;
 
-    // 스마트 파서: 시간 정보가 없으면 줄당 3초씩 할당
+    // Smart Parser: 3 seconds per block if no timestamp exists
     function parseSubtitlesSmart(text) {
         const rawLines = text.split('\n');
         const timePairRegex = /((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})\s*-->\s*((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})/;
@@ -237,7 +237,7 @@
         } else {
             const results = [];
             let autoStartTime = 0;
-            const durationPerBlock = 3; // 요청에 따라 3초로 조정
+            const durationPerBlock = 3; 
             
             const blocks = text.split(/\n--\n|\n--\r\n/).filter(b => b.trim());
             
@@ -285,19 +285,19 @@
     }
 
     function updateDisplay() {
-        // 마지막 자막 시간 이후인지 체크
-        if (currentTime >= maxTime - 0.5) {
+        // Check if current time is near or past maxTime
+        if (currentTime >= maxTime - 0.2) {
             subtitleDisplay.innerText = "끝";
             subtitleDisplay.style.opacity = 1;
-            subtitleDisplay.style.color = "#ff4141"; // 종료 메시지는 붉은색 강조
+            subtitleDisplay.style.color = "white"; // "끝" 메시지 색상을 흰색으로 변경
             
-            if (isPlaying) {
+            if (isPlaying && currentTime >= maxTime) {
                 isPlaying = false;
                 updatePlayStatus();
             }
         } else {
             const activeCue = cues.find(cue => currentTime >= cue.start && currentTime <= cue.end);
-            subtitleDisplay.style.color = "white"; // 일반 자막은 흰색
+            subtitleDisplay.style.color = "white"; 
             if (activeCue) {
                 if (subtitleDisplay.innerText !== activeCue.text) {
                     subtitleDisplay.innerText = activeCue.text;
@@ -320,7 +320,6 @@
 
         currentTime += delta;
         
-        // 끝 도달 시 처리
         if (currentTime >= maxTime) {
             currentTime = maxTime;
             isPlaying = false;
@@ -346,7 +345,6 @@
     function togglePlay() {
         if (cues.length === 0) return;
         
-        // 이미 끝에 도달했을 때 재생을 누르면 처음으로 리셋
         if (currentTime >= maxTime) {
             currentTime = 0;
         }
@@ -384,10 +382,9 @@
         
         if (newCues.length > 0) {
             cues = newCues;
-            // 마지막 자막이 끝나는 시간을 최대 시간으로 설정
             maxTime = Math.max(...cues.map(c => c.end));
             seekBar.max = maxTime;
-            currentTime = 0; // 적용 시 처음으로 리셋
+            currentTime = 0; 
             
             statusDot.className = "status-dot bg-green-500";
             statusText.innerHTML = `<span class="status-dot bg-green-500"></span> ${cues.length}개 로드됨`;
