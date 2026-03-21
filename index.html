@@ -1,487 +1,424 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>자막 프리뷰어 - 클라우드 & 레코딩</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>자막 프리뷰어 - 스마트 파싱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
 
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #1a1a1a;
-            color: #e5e5e5;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100vh;
-            height: -webkit-fill-available;
-        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #1a1a1a;
+            color: #e5e5e5;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            height: -webkit-fill-available;
+        }
 
-        .editor-container {
-            height: 100vh;
-            height: 100svh;
-            display: flex;
-            flex-direction: column;
-        }
+        .editor-container {
+            height: 100vh;
+            height: 100svh;
+            display: flex;
+            flex-direction: column;
+        }
 
-        @media (min-width: 768px) {
-            .editor-container {
-                flex-direction: row;
-            }
-            .input-section {
-                width: 380px;
-                height: 100% !important;
-                border-right: 1px solid #404040;
-                border-bottom: none;
-            }
-        }
+        @media (min-width: 768px) {
+            .editor-container {
+                flex-direction: row;
+            }
+            .input-section {
+                width: 380px;
+                height: 100% !important;
+                border-right: 1px solid #404040;
+                border-bottom: none;
+            }
+        }
 
-        .input-section {
-            background-color: #262626;
-            display: flex;
-            flex-direction: column;
-            padding: 0.75rem;
-            z-index: 20;
-            height: 45%; 
-            border-bottom: 1px solid #404040;
-            flex-shrink: 0;
-            gap: 0.5rem;
-        }
+        .input-section {
+            background-color: #262626;
+            display: flex;
+            flex-direction: column;
+            padding: 0.75rem;
+            z-index: 20;
+            height: 35%; 
+            border-bottom: 1px solid #404040;
+            flex-shrink: 0;
+        }
 
-        .preview-section {
-            flex-grow: 1;
-            background-color: #000;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+        .preview-section {
+            flex-grow: 1;
+            background-color: #000;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
 
-        textarea {
-            flex-grow: 1;
-            background-color: #121212;
-            color: #00ff41;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            border: 1px solid #404040;
-            resize: none;
-            outline: none;
-            font-size: 0.8rem;
-            line-height: 1.4;
-        }
+        textarea {
+            flex-grow: 1;
+            background-color: #121212;
+            color: #00ff41;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid #404040;
+            resize: none;
+            outline: none;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
 
-        #subtitle-display {
-            color: white;
-            font-size: 1.4rem;
-            text-align: center;
-            text-shadow: 2px 2px 10px rgba(0, 0, 0, 1);
-            max-width: 90%;
-            line-height: 1.4;
-            transition: opacity 0.2s ease;
-            pointer-events: none;
-            white-space: pre-wrap;
-            font-weight: 700;
-            z-index: 5;
-            margin-bottom: 2rem;
-        }
+        #subtitle-display {
+            color: white;
+            font-size: 1.4rem;
+            text-align: center;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 1);
+            max-width: 90%;
+            line-height: 1.4;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            white-space: pre-wrap;
+            font-weight: 700;
+            z-index: 5;
+            margin-bottom: 2rem;
+        }
 
-        @media (min-width: 768px) {
-            #subtitle-display {
-                font-size: 2.5rem;
-                margin-bottom: 0;
-            }
-        }
+        @media (min-width: 768px) {
+            #subtitle-display {
+                font-size: 2.5rem;
+                margin-bottom: 0;
+            }
+        }
 
-        .controls {
-            position: absolute;
-            bottom: 1rem;
-            background: rgba(45, 45, 45, 0.9);
-            padding: 0.5rem 0.8rem;
-            border-radius: 12px;
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.1);
-            width: 92%;
-            max-width: 480px;
-            justify-content: space-between;
-            z-index: 15;
-        }
+        .controls {
+            position: absolute;
+            bottom: 1rem;
+            background: rgba(45, 45, 45, 0.9);
+            padding: 0.5rem 0.8rem;
+            border-radius: 12px;
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.1);
+            width: 92%;
+            max-width: 480px;
+            justify-content: space-between;
+            z-index: 15;
+        }
 
-        .preview-section.hide-cursor .controls {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .preview-section.hide-cursor .controls {
+            opacity: 0;
+            pointer-events: none;
+        }
 
-        .time-display {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.85rem;
-            color: #fbbf24;
-            min-width: 60px;
-            text-align: right;
-        }
+        .time-display {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            color: #fbbf24;
+            min-width: 60px;
+            text-align: right;
+        }
 
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 4px;
-        }
+        button {
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
-        #save-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4f46e5;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-
-        .recording-indicator {
-            display: none;
-            position: absolute;
-            top: 1rem;
-            left: 1rem;
-            background: rgba(220, 38, 38, 0.8);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            animation: pulse 1s infinite;
-            z-index: 30;
-        }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    </style>
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+        }
+    </style>
 </head>
 <body>
 
-<div id="toast" class="toast">알림</div>
-
 <div class="editor-container">
-    <div class="input-section">
-        <div class="flex justify-between items-center mb-1">
-            <h1 class="text-sm font-bold text-indigo-400">Subtitle Smart Cloud</h1>
-            <div id="parse-status" class="text-[10px] text-gray-400 bg-black/30 px-2 py-0.5 rounded-full">
-                <span class="status-dot bg-yellow-500"></span> 대기 중
-            </div>
-        </div>
-
-        <!-- Cloud Section -->
-        <div class="flex gap-2 bg-black/20 p-2 rounded-lg border border-white/5 mb-1">
-            <input type="text" id="load-code-input" class="flex-grow !bg-transparent border-none text-xs text-white outline-none" placeholder="코드 입력 (예: AB1234)">
-            <button id="load-btn" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded text-[10px] font-bold transition-colors">불러오기</button>
-            <button id="save-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold transition-colors">저장하기</button>
-        </div>
-        
-        <textarea id="vtt-input" spellcheck="false" placeholder="SRT, VTT 형식을 붙여넣거나 일반 텍스트를 입력하세요.">자막 프리뷰어입니다
+    <div class="input-section">
+        <div class="flex justify-between items-center mb-1">
+            <h1 class="text-sm font-bold text-indigo-400">Subtitle Editor</h1>
+            <div id="parse-status" class="text-[10px] text-gray-400 bg-black/30 px-2 py-0.5 rounded-full">
+                <span class="status-dot bg-yellow-500"></span> 대기 중
+            </div>
+        </div>
+        
+        <textarea id="vtt-input" spellcheck="false" placeholder="여기에 자막을 붙여넣으세요...">자막 프리뷰어입니다
 
 --
 
 이곳에 원하는 내용을
 입력해보세요.</textarea>
 
-        <div class="grid grid-cols-3 gap-2 mt-1">
-            <button id="apply-btn" class="col-span-2 bg-indigo-600 active:bg-indigo-800 text-white py-3 rounded-lg font-bold text-sm shadow-md transition-all">
-                적용 및 재생
-            </button>
-            <button id="record-btn" class="bg-rose-700 active:bg-rose-900 text-white py-3 rounded-lg font-bold text-[11px] shadow-md transition-all">
-                영상으로 만들기
-            </button>
-        </div>
-    </div>
+        <div class="mt-2">
+            <button id="apply-btn" class="w-full bg-indigo-600 active:bg-indigo-800 text-white py-2 rounded-lg font-bold text-sm shadow-md transition-colors">
+                적용하기
+            </button>
+        </div>
+    </div>
 
-    <div class="preview-section" id="fullscreen-target">
-        <div class="recording-indicator" id="recording-indicator">● RECORDING</div>
-        <div id="subtitle-display"></div>
+    <div class="preview-section" id="fullscreen-target">
+        <div id="subtitle-display"></div>
 
-        <div class="controls" id="ui-controls">
-            <button id="play-pause">
-                <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="white" viewBox="0 0 16 16">
-                    <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
-                </svg>
-                <svg id="pause-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="white" viewBox="0 0 16 16">
-                    <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
-                </svg>
-            </button>
-            
-            <input type="range" id="seek-bar" class="accent-indigo-500" value="0" step="0.01" min="0">
-            
-            <div class="time-display" id="time-display">00:00.0</div>
-            
-            <button id="fullscreen-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 16 16">
-                    <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
-                </svg>
-            </button>
-        </div>
-    </div>
+        <div class="controls" id="ui-controls">
+            <button id="play-pause">
+                <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="white" viewBox="0 0 16 16">
+                    <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+                </svg>
+                <svg id="pause-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="white" viewBox="0 0 16 16">
+                    <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+                </svg>
+            </button>
+            
+            <input type="range" id="seek-bar" class="accent-indigo-500" value="0" step="0.01" min="0">
+            
+            <div class="time-display" id="time-display">00:00.0</div>
+            
+            <button id="fullscreen-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 16 16">
+                    <path d="M1.5 1a.5.5 0 0 0-.5.5v4a.5.5 0 0 1-1 0v-4A1.5 1.5 0 0 1 1.5 0h4a.5.5 0 0 1 0 1h-4zM10 .5a.5.5 0 0 1 .5-.5h4A1.5 1.5 0 0 1 16 1.5v4a.5.5 0 0 1-1 0v-4a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 1-.5-.5zM.5 10a.5.5 0 0 1 .5.5v4a.5.5 0 0 0 .5.5h4a.5.5 0 0 1 0 1h-4A1.5 1.5 0 0 1 0 14.5v-4a.5.5 0 0 1 .5-.5zm15 0a.5.5 0 0 1 .5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a.5.5 0 0 1 0-1h4a.5.5 0 0 0 .5-.5v-4a.5.5 0 0 1 .5-.5z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
 </div>
 
-<!-- Modal -->
-<div id="save-modal" onclick="this.style.display='none'">
-    <div class="bg-zinc-800 p-8 rounded-3xl max-w-sm w-full text-center border border-zinc-700 shadow-2xl" onclick="event.stopPropagation()">
-        <h2 class="text-xl font-bold text-white mb-2">저장 완료!</h2>
-        <p class="text-gray-400 text-sm mb-4">아래 코드를 입력하여 어디서든 불러오세요.</p>
-        <div id="result-code" class="text-3xl font-black text-indigo-400 bg-black/40 py-4 rounded-xl tracking-widest mb-6">------</div>
-        <button onclick="document.getElementById('save-modal').style.display='none'" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">확인</button>
-    </div>
-</div>
+<script>
+    const vttInput = document.getElementById('vtt-input');
+    const subtitleDisplay = document.getElementById('subtitle-display');
+    const playPauseBtn = document.getElementById('play-pause');
+    const seekBar = document.getElementById('seek-bar');
+    const timeDisplay = document.getElementById('time-display');
+    const applyBtn = document.getElementById('apply-btn');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const fullscreenTarget = document.getElementById('fullscreen-target');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.getElementById('parse-status');
 
-<!-- Firebase SDK -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    let cues = [];
+    let currentTime = 0;
+    let isPlaying = false;
+    let lastTimestamp = 0;
+    let maxTime = 10;
+    let hideTimer;
 
-    const firebaseConfig = JSON.parse(__firebase_config);
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'subtitle-smart-viewer';
+    // 스마트 파서: 시간 정보가 없으면 줄당 3초씩 할당
+    function parseSubtitlesSmart(text) {
+        const rawLines = text.split('\n');
+        const timePairRegex = /((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})\s*-->\s*((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})/;
+        
+        const hasTimestamps = text.match(timePairRegex);
+        
+        if (hasTimestamps) {
+            const results = [];
+            let currentCue = null;
+            for (let line of rawLines) {
+                line = line.trim();
+                const match = line.match(timePairRegex);
+                if (match) {
+                    if (currentCue) results.push(currentCue);
+                    currentCue = { start: timeToSeconds(match[1]), end: timeToSeconds(match[2]), text: "" };
+                } else if (currentCue && line && !/^\d+$/.test(line) && line.toUpperCase() !== 'WEBVTT') {
+                    currentCue.text += (currentCue.text ? "\n" : "") + line;
+                }
+            }
+            if (currentCue) results.push(currentCue);
+            return results.filter(c => c.text).sort((a,b) => a.start - b.start);
+        } else {
+            const results = [];
+            let autoStartTime = 0;
+            const durationPerBlock = 3; // 요청에 따라 3초로 조정
+            
+            const blocks = text.split(/\n--\n|\n--\r\n/).filter(b => b.trim());
+            
+            if (blocks.length > 1 || text.includes('--')) {
+                blocks.forEach(block => {
+                    const cleanText = block.trim();
+                    if (cleanText) {
+                        results.push({
+                            start: autoStartTime,
+                            end: autoStartTime + durationPerBlock,
+                            text: cleanText
+                        });
+                        autoStartTime += durationPerBlock;
+                    }
+                });
+            } else {
+                rawLines.filter(line => line.trim()).forEach(line => {
+                    results.push({
+                        start: autoStartTime,
+                        end: autoStartTime + durationPerBlock,
+                        text: line.trim()
+                    });
+                    autoStartTime += durationPerBlock;
+                });
+            }
+            return results;
+        }
+    }
 
-    let user = null;
+    function timeToSeconds(timeStr) {
+        if (!timeStr) return 0;
+        const normalized = timeStr.replace(',', '.');
+        const parts = normalized.split(':').reverse();
+        let seconds = 0;
+        if (parts[0]) seconds += parseFloat(parts[0]);
+        if (parts[1]) seconds += parseInt(parts[1]) * 60;
+        if (parts[2]) seconds += parseInt(parts[2]) * 3600;
+        return seconds;
+    }
 
-    // UI Refs
-    const vttInput = document.getElementById('vtt-input');
-    const subtitleDisplay = document.getElementById('subtitle-display');
-    const playPauseBtn = document.getElementById('play-pause');
-    const seekBar = document.getElementById('seek-bar');
-    const timeDisplay = document.getElementById('time-display');
-    const applyBtn = document.getElementById('apply-btn');
-    const statusDot = document.querySelector('.status-dot');
-    const statusText = document.getElementById('parse-status');
-    const toast = document.getElementById('toast');
-    const loadCodeInput = document.getElementById('load-code-input');
-    const recordingIndicator = document.getElementById('recording-indicator');
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(1);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(4, '0')}`;
+    }
 
-    let cues = [];
-    let currentTime = 0;
-    let isPlaying = false;
-    let lastTimestamp = 0;
-    let maxTime = 10;
-    let hideTimer;
-    let mediaRecorder = null;
-    let recordedChunks = [];
+    function updateDisplay() {
+        // 마지막 자막 시간 이후인지 체크
+        if (currentTime >= maxTime - 0.5) {
+            subtitleDisplay.innerText = "끝";
+            subtitleDisplay.style.opacity = 1;
+            subtitleDisplay.style.color = "#ffffff"; // 종료 메시지는 붉은색 강조
+            
+            if (isPlaying) {
+                isPlaying = false;
+                updatePlayStatus();
+            }
+        } else {
+            const activeCue = cues.find(cue => currentTime >= cue.start && currentTime <= cue.end);
+            subtitleDisplay.style.color = "white"; // 일반 자막은 흰색
+            if (activeCue) {
+                if (subtitleDisplay.innerText !== activeCue.text) {
+                    subtitleDisplay.innerText = activeCue.text;
+                    subtitleDisplay.style.opacity = 1;
+                }
+            } else {
+                subtitleDisplay.style.opacity = 0;
+            }
+        }
+        
+        timeDisplay.innerText = formatTime(currentTime);
+        seekBar.value = currentTime;
+    }
 
-    // Auth Init
-    onAuthStateChanged(auth, u => { user = u; });
-    const initAuth = async () => { await signInAnonymously(auth); };
-    initAuth();
+    function animate(timestamp) {
+        if (!isPlaying) return;
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = (timestamp - lastTimestamp) / 1000;
+        lastTimestamp = timestamp;
 
-    function showToast(msg) {
-        toast.innerText = msg;
-        toast.style.opacity = "1";
-        setTimeout(() => toast.style.opacity = "0", 2000);
-    }
+        currentTime += delta;
+        
+        // 끝 도달 시 처리
+        if (currentTime >= maxTime) {
+            currentTime = maxTime;
+            isPlaying = false;
+            updatePlayStatus();
+            updateDisplay();
+            return;
+        }
+        
+        updateDisplay();
+        requestAnimationFrame(animate);
+    }
 
-    // --- Cloud Functions ---
-    document.getElementById('save-btn').onclick = async () => {
-        if (!user) { showToast("연결 중..."); return; }
-        if (!vttInput.value.trim()) return;
+    function updatePlayStatus() {
+        if (isPlaying) {
+            playIcon.classList.add('hidden');
+            pauseIcon.classList.remove('hidden');
+        } else {
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
+        }
+    }
 
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'subtitles', code), {
-                content: vttInput.value,
-                updatedAt: Date.now()
-            });
-            document.getElementById('result-code').innerText = code;
-            document.getElementById('save-modal').style.display = 'flex';
-        } catch (e) { showToast("저장 실패"); }
-    };
+    function togglePlay() {
+        if (cues.length === 0) return;
+        
+        // 이미 끝에 도달했을 때 재생을 누르면 처음으로 리셋
+        if (currentTime >= maxTime) {
+            currentTime = 0;
+        }
+        
+        isPlaying = !isPlaying;
+        updatePlayStatus();
+        if (isPlaying) {
+            lastTimestamp = 0;
+            requestAnimationFrame(animate);
+        }
+    }
 
-    document.getElementById('load-btn').onclick = async () => {
-        const code = loadCodeInput.value.trim().toUpperCase();
-        if (!code) return;
-        try {
-            const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'subtitles', code));
-            if (snap.exists()) {
-                vttInput.value = snap.data().content;
-                applyBtn.click();
-                showToast("불러오기 완료");
-            } else { showToast("코드가 없습니다."); }
-        } catch (e) { showToast("불러오기 에러"); }
-    };
+    fullscreenBtn.onclick = () => {
+        if (!document.fullscreenElement) {
+            if (fullscreenTarget.requestFullscreen) fullscreenTarget.requestFullscreen();
+            else if (fullscreenTarget.webkitRequestFullscreen) fullscreenTarget.webkitRequestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    };
 
-    // --- Recording ---
-    document.getElementById('record-btn').onclick = async () => {
-        if (isPlaying) togglePlay();
-        currentTime = 0;
-        updateDisplay();
+    playPauseBtn.onclick = (e) => {
+        e.stopPropagation();
+        togglePlay();
+    };
 
-        try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            recordedChunks = [];
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `subtitle_${Date.now()}.webm`;
-                a.click();
-                recordingIndicator.style.display = 'none';
-                stream.getTracks().forEach(t => t.stop());
-            };
-            recordingIndicator.style.display = 'block';
-            mediaRecorder.start();
-            togglePlay();
-        } catch (e) { showToast("녹화 권한이 필요합니다."); }
-    };
+    seekBar.oninput = (e) => {
+        currentTime = parseFloat(e.target.value);
+        updateDisplay();
+    };
 
-    // --- Parser & Engine ---
-    function parseSubtitlesSmart(text) {
-        const rawLines = text.split('\n');
-        const timePairRegex = /((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})\s*-->\s*((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})/;
-        const hasTimestamps = text.match(timePairRegex);
-        
-        if (hasTimestamps) {
-            const results = [];
-            let currentCue = null;
-            for (let line of rawLines) {
-                line = line.trim();
-                const match = line.match(timePairRegex);
-                if (match) {
-                    if (currentCue) results.push(currentCue);
-                    currentCue = { start: timeToSeconds(match[1]), end: timeToSeconds(match[2]), text: "" };
-                } else if (currentCue && line && !/^\d+$/.test(line) && line.toUpperCase() !== 'WEBVTT') {
-                    currentCue.text += (currentCue.text ? "\n" : "") + line;
-                }
-            }
-            if (currentCue) results.push(currentCue);
-            return results.filter(c => c.text).sort((a,b) => a.start - b.start);
-        } else {
-            const results = [];
-            let autoStartTime = 0;
-            const durationPerBlock = 3;
-            const blocks = text.split(/\n--\n|\n--\r\n/).filter(b => b.trim());
-            
-            if (blocks.length > 1 || text.includes('--')) {
-                blocks.forEach(block => {
-                    results.push({ start: autoStartTime, end: autoStartTime + durationPerBlock, text: block.trim() });
-                    autoStartTime += durationPerBlock;
-                });
-            } else {
-                rawLines.filter(line => line.trim()).forEach(line => {
-                    results.push({ start: autoStartTime, end: autoStartTime + durationPerBlock, text: line.trim() });
-                    autoStartTime += durationPerBlock;
-                });
-            }
-            return results;
-        }
-    }
+    applyBtn.onclick = () => {
+        const text = vttInput.value;
+        const newCues = parseSubtitlesSmart(text);
+        
+        if (newCues.length > 0) {
+            cues = newCues;
+            // 마지막 자막이 끝나는 시간을 최대 시간으로 설정
+            maxTime = Math.max(...cues.map(c => c.end));
+            seekBar.max = maxTime;
+            currentTime = 0; // 적용 시 처음으로 리셋
+            
+            statusDot.className = "status-dot bg-green-500";
+            statusText.innerHTML = `<span class="status-dot bg-green-500"></span> ${cues.length}개 로드됨`;
+            
+            applyBtn.innerText = "적용됨";
+            applyBtn.classList.replace('bg-indigo-600', 'bg-green-600');
+            setTimeout(() => {
+                applyBtn.innerText = "적용하기";
+                applyBtn.classList.replace('bg-green-600', 'bg-indigo-600');
+            }, 800);
+            updateDisplay();
+        } else {
+            statusDot.className = "status-dot bg-red-500";
+            statusText.innerHTML = `<span class="status-dot bg-red-500"></span> 내용 없음`;
+        }
+    };
 
-    function timeToSeconds(s) {
-        const p = s.replace(',', '.').split(':').reverse();
-        return parseFloat(p[0] || 0) + parseInt(p[1] || 0) * 60 + parseInt(p[2] || 0) * 3600;
-    }
+    fullscreenTarget.onclick = () => {
+        fullscreenTarget.classList.remove('hide-cursor');
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => {
+            if (isPlaying) fullscreenTarget.classList.add('hide-cursor');
+        }, 3000);
+    };
 
-    function formatTime(s) {
-        const m = Math.floor(s / 60);
-        const sec = (s % 60).toFixed(1);
-        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(4, '0')}`;
-    }
-
-    function updateDisplay() {
-        if (currentTime >= maxTime - 0.5) {
-            subtitleDisplay.innerText = "끝";
-            subtitleDisplay.style.opacity = 1;
-            if (isPlaying) { isPlaying = false; updatePlayStatus(); if(mediaRecorder) mediaRecorder.stop(); }
-        } else {
-            const cue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
-            if (cue) {
-                subtitleDisplay.innerText = cue.text;
-                subtitleDisplay.style.opacity = 1;
-            } else {
-                subtitleDisplay.style.opacity = 0;
-            }
-        }
-        timeDisplay.innerText = formatTime(currentTime);
-        seekBar.value = currentTime;
-    }
-
-    function animate(timestamp) {
-        if (!isPlaying) return;
-        if (!lastTimestamp) lastTimestamp = timestamp;
-        const delta = (timestamp - lastTimestamp) / 1000;
-        lastTimestamp = timestamp;
-        currentTime += delta;
-        if (currentTime >= maxTime) {
-            currentTime = maxTime;
-            isPlaying = false;
-            updatePlayStatus();
-            updateDisplay();
-            return;
-        }
-        updateDisplay();
-        requestAnimationFrame(animate);
-    }
-
-    function updatePlayStatus() {
-        document.getElementById('play-icon').classList.toggle('hidden', isPlaying);
-        document.getElementById('pause-icon').classList.toggle('hidden', !isPlaying);
-    }
-
-    function togglePlay() {
-        if (cues.length === 0) return;
-        if (currentTime >= maxTime) currentTime = 0;
-        isPlaying = !isPlaying;
-        updatePlayStatus();
-        if (isPlaying) { lastTimestamp = 0; requestAnimationFrame(animate); }
-    }
-
-    // --- Events ---
-    applyBtn.onclick = () => {
-        const newCues = parseSubtitlesSmart(vttInput.value);
-        if (newCues.length > 0) {
-            cues = newCues;
-            maxTime = Math.max(...cues.map(c => c.end));
-            seekBar.max = maxTime;
-            currentTime = 0;
-            statusDot.className = "status-dot bg-green-500";
-            statusText.innerHTML = `<span class="status-dot bg-green-500"></span> ${cues.length}개 적용`;
-            updateDisplay();
-            togglePlay();
-        }
-    };
-
-    document.getElementById('play-pause').onclick = e => { e.stopPropagation(); togglePlay(); };
-    seekBar.oninput = e => { currentTime = parseFloat(e.target.value); updateDisplay(); };
-    document.getElementById('fullscreen-btn').onclick = () => {
-        if (!document.fullscreenElement) document.getElementById('fullscreen-target').requestFullscreen();
-        else document.exitFullscreen();
-    };
-
-    window.onload = () => applyBtn.click();
+    window.onload = () => {
+        applyBtn.click();
+    };
 </script>
 
 </body>
 </html>
+
+내가 만든 코드인데, 이 코드의 기능중에 srt 혹은 vtt 형식을 찾지 못하는 텍스트일시 밑줄당 3초거든? 3초는 그대로 유지하되. 마침표를 하면 3초 뒤 아무것도 없는 화면 0.5초, 밑줄 두개가 있을시 2초 쉬게 만들어줘
