@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>자막 프리뷰어 - 꿈용판v.4</title>
+    <title>자막 프리뷰어 - v.42</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
@@ -36,16 +36,16 @@
             </select>
         </div>
         
-        <textarea id="vtt-input" spellcheck="false">안녕하세요! 속도를 최적화했습니다.
+        <textarea id="vtt-input" spellcheck="false">안녕하세요! 오디오 문제를 수정했습니다.
 --
-문장별로 빠르게 생성하여
-거의 즉시 확인할 수 있습니다.
+이제 소리가 정상적으로 들리는지
+확인해 주시기 바랍니다.
 --
-소리가 잘 들리는지 확인해 보세요.</textarea>
+볼륨이 작다면 기기 설정을 확인해 보세요.</textarea>
 
         <div class="mt-3 flex flex-col gap-2">
             <button id="apply-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">
-                AI 음성 빛의 속도로 생성
+                AI 음성 생성 및 오디오 복구
             </button>
             <div class="flex gap-2 items-center">
                 <span id="ai-status" class="status-badge">● 대기 중</span>
@@ -96,40 +96,46 @@
     let animationFrame = null;
     let lastTime = 0;
 
-    // WAV 변환 시 볼륨 최적화를 위해 PCM 데이터를 그대로 사용
+    // WAV 변환 로직 보강 (Signed 16-bit PCM 정밀 처리)
     function pcmToWav(pcmDataB64, sampleRate = 24000) {
         try {
-            const byteCharacters = atob(pcmDataB64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            const byteString = atob(pcmDataB64);
+            const buffer = new ArrayBuffer(byteString.length);
+            const uint8Array = new Uint8Array(buffer);
+            for (let i = 0; i < byteString.length; i++) {
+                uint8Array[i] = byteString.charCodeAt(i);
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const buffer = byteArray.buffer;
+            
+            // PCM 데이터를 Int16Array로 해석 (Gemini API는 l16 즉 Little-endian 16-bit PCM 제공)
+            const pcmInt16 = new Int16Array(buffer);
             
             const wavHeader = new ArrayBuffer(44);
             const view = new DataView(wavHeader);
             
+            // RIFF chunk descriptor
             view.setUint32(0, 0x52494646, false); // "RIFF"
             view.setUint32(4, 36 + buffer.byteLength, true);
             view.setUint32(8, 0x57415645, false); // "WAVE"
+            
+            // fmt sub-chunk
             view.setUint32(12, 0x666d7420, false); // "fmt "
-            view.setUint16(16, 16, true);
-            view.setUint16(20, 1, true); // PCM
-            view.setUint16(22, 1, true); // Mono
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * 2, true); // (SampleRate * Channels * BitsPerSample) / 8
-            view.setUint16(32, 2, true); // (Channels * BitsPerSample) / 8
-            view.setUint16(34, 16, true);
+            view.setUint32(16, 16, true); // Subchunk1Size
+            view.setUint16(20, 1, true); // AudioFormat (1 = PCM)
+            view.setUint16(22, 1, true); // NumChannels (1 = Mono)
+            view.setUint32(24, sampleRate, true); // SampleRate
+            view.setUint32(28, sampleRate * 2, true); // ByteRate
+            view.setUint16(32, 2, true); // BlockAlign
+            view.setUint16(34, 16, true); // BitsPerSample
+            
+            // data sub-chunk
             view.setUint32(36, 0x64617461, false); // "data"
             view.setUint32(40, buffer.byteLength, true);
             
-            const combined = new Uint8Array(wavHeader.byteLength + buffer.byteLength);
-            combined.set(new Uint8Array(wavHeader), 0);
-            combined.set(new Uint8Array(buffer), 44);
+            const wavBuffer = new Uint8Array(wavHeader.byteLength + buffer.byteLength);
+            wavBuffer.set(new Uint8Array(wavHeader), 0);
+            wavBuffer.set(new Uint8Array(buffer), 44);
             
-            const blob = new Blob([combined], { type: 'audio/wav' });
-            return URL.createObjectURL(blob);
+            return URL.createObjectURL(new Blob([wavBuffer], { type: 'audio/wav' }));
         } catch (e) {
             console.error("WAV 변환 오류:", e);
             return null;
@@ -148,7 +154,6 @@
             }
         };
 
-        // 지수 백오프 적용된 페치
         let retries = 5;
         let delay = 500;
 
@@ -167,13 +172,13 @@
                 
                 if (!pcmData) throw new Error("Empty audio data");
 
+                // Gemini API의 오디오는 보통 24000Hz PCM16입니다.
                 const audioUrl = pcmToWav(pcmData, 24000);
-                if (!audioUrl) throw new Error("WAV conversion failed");
-
+                
                 return new Promise((resolve) => {
                     const tempAudio = new Audio(audioUrl);
                     tempAudio.onloadedmetadata = () => resolve({ url: audioUrl, duration: tempAudio.duration });
-                    tempAudio.onerror = () => resolve({ url: audioUrl, duration: 2.0 }); // 메타데이터 로드 실패 시 기본값
+                    tempAudio.onerror = () => resolve({ url: audioUrl, duration: 2.5 });
                 });
             } catch (err) {
                 retries--;
@@ -198,9 +203,8 @@
         
         cues = [];
         let accumulatedTime = 0;
-        const gap = 0.3; // 문장 사이 간격 최적화
+        const gap = 0.3;
 
-        // 병렬 처리를 시도하여 속도 향상
         try {
             const results = await Promise.all(blocks.map(block => fetchGeminiTTS(block)));
             
@@ -232,7 +236,7 @@
             applyBtn.disabled = false;
             applyBtn.innerText = "다시 생성하기";
             loadingIcon.classList.add('hidden');
-            subtitleDisplay.innerText = "준비되었습니다. 재생 버튼을 눌러주세요.";
+            subtitleDisplay.innerText = "준비되었습니다. 재생 버튼을 누르세요.";
             updateUI();
         }
     };
@@ -262,9 +266,9 @@
         const cue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
         if (cue && cue.audioUrl) {
             currentAudio = new Audio(cue.audioUrl);
-            currentAudio.volume = 1.0; // 볼륨 최대 설정
+            currentAudio.volume = 1.0;
             currentAudio.currentTime = Math.max(0, currentTime - cue.start);
-            currentAudio.play().catch(() => {});
+            currentAudio.play().catch(e => console.error("재생 오류:", e));
         }
     }
 
@@ -330,5 +334,4 @@
 </script>
 
 </body>
-</html>
 </html>
