@@ -31,7 +31,7 @@
                 flex-direction: row;
             }
             .input-section {
-                width: 400px;
+                width: 380px;
                 height: 100% !important;
                 border-right: 1px solid #404040;
                 border-bottom: none;
@@ -44,15 +44,10 @@
             flex-direction: column;
             padding: 0.75rem;
             z-index: 20;
-            height: 55%; 
+            height: 45%; 
             border-bottom: 1px solid #404040;
             flex-shrink: 0;
             gap: 0.5rem;
-            transition: height 0.3s ease;
-        }
-
-        .input-section.expanded {
-            height: 90%;
         }
 
         .preview-section {
@@ -76,18 +71,8 @@
             border: 1px solid #404040;
             resize: none;
             outline: none;
-            font-size: 0.85rem;
-            line-height: 1.5;
-        }
-
-        input[type="text"] {
-            background-color: #121212;
-            border: 1px solid #404040;
-            color: white;
-            padding: 0.4rem 0.75rem;
-            border-radius: 0.5rem;
             font-size: 0.8rem;
-            outline: none;
+            line-height: 1.4;
         }
 
         #subtitle-display {
@@ -142,21 +127,15 @@
             text-align: right;
         }
 
-        button {
-            transition: all 0.2s;
-        }
-        
-        button:active {
-            transform: scale(0.95);
-        }
-
-        input[type="range"] {
-            flex: 1;
-            height: 6px;
-            border-radius: 3px;
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 4px;
         }
 
-        #link-modal, #save-modal {
+        #save-modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -167,7 +146,7 @@
             padding: 20px;
         }
 
-        .append-toast {
+        .toast {
             position: fixed;
             top: 20px;
             left: 50%;
@@ -182,11 +161,9 @@
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        /* Recording indicator */
-        .recording-dot {
+        .recording-indicator {
             display: none;
             position: absolute;
             top: 1rem;
@@ -200,63 +177,49 @@
             animation: pulse 1s infinite;
             z-index: 30;
         }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-<div id="toast" class="append-toast">알림 메시지</div>
+<div id="toast" class="toast">알림</div>
 
 <div class="editor-container">
-    <div class="input-section" id="input-section">
-        <div class="flex justify-between items-center">
+    <div class="input-section">
+        <div class="flex justify-between items-center mb-1">
             <h1 class="text-sm font-bold text-indigo-400">Subtitle Smart Cloud</h1>
-            <div class="flex gap-1">
-                <button id="toggle-size-btn" class="md:hidden text-[10px] text-gray-300 bg-gray-700 px-2 py-0.5 rounded">확대</button>
-                <div id="parse-status" class="text-[10px] text-gray-400 bg-black/30 px-2 py-0.5 rounded-full">
-                    <span class="status-dot bg-yellow-500 inline-block w-2 h-2 rounded-full mr-1"></span> 대기
-                </div>
+            <div id="parse-status" class="text-[10px] text-gray-400 bg-black/30 px-2 py-0.5 rounded-full">
+                <span class="status-dot bg-yellow-500"></span> 대기 중
             </div>
         </div>
 
-        <!-- Cloud Sync & Load -->
-        <div class="flex gap-2 bg-black/20 p-2 rounded-lg border border-white/5">
-            <input type="text" id="load-code-input" class="flex-grow !bg-transparent border-none text-xs" placeholder="코드 입력 (예: AB1234)">
-            <button id="load-btn" class="bg-indigo-700 text-white px-3 py-1 rounded text-[10px] font-bold">불러오기</button>
-            <button id="save-btn" class="bg-emerald-600 text-white px-3 py-1 rounded text-[10px] font-bold">저장하기</button>
-        </div>
-
-        <div class="flex flex-col gap-1">
-            <div class="flex justify-between items-end">
-                <label class="text-[10px] text-gray-400 ml-1">아카라이브 링크</label>
-                <button id="clear-all-btn" class="text-[10px] text-red-400 hover:text-red-300 mb-0.5">[비우기]</button>
-            </div>
-            <div class="flex gap-2">
-                <input type="text" id="url-input" class="flex-grow" placeholder="https://arca.live/b/...">
-                <button id="url-fetch-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-lg text-xs font-bold">열기</button>
-            </div>
+        <!-- Cloud Section -->
+        <div class="flex gap-2 bg-black/20 p-2 rounded-lg border border-white/5 mb-1">
+            <input type="text" id="load-code-input" class="flex-grow !bg-transparent border-none text-xs text-white outline-none" placeholder="코드 입력 (예: AB1234)">
+            <button id="load-btn" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded text-[10px] font-bold transition-colors">불러오기</button>
+            <button id="save-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-[10px] font-bold transition-colors">저장하기</button>
         </div>
         
-        <textarea id="vtt-input" spellcheck="false" placeholder="나누어서 복사한 뒤 '이어서 붙이기'를 사용하세요..."></textarea>
+        <textarea id="vtt-input" spellcheck="false" placeholder="SRT, VTT 형식을 붙여넣거나 일반 텍스트를 입력하세요.">자막 프리뷰어입니다
 
-        <div class="grid grid-cols-2 gap-2">
-            <button id="append-btn" class="bg-blue-700 text-white py-2 rounded-lg font-bold text-xs shadow-md">이어서 붙이기</button>
-            <button id="clean-btn" class="bg-teal-700 text-white py-2 rounded-lg font-bold text-xs shadow-md">텍스트 정제</button>
-        </div>
-        
-        <div class="grid grid-cols-5 gap-2 mt-1">
-            <button id="apply-btn" class="col-span-3 bg-indigo-600 text-white py-3 rounded-lg font-bold text-sm shadow-md">자막 적용 및 재생</button>
-            <button id="record-btn" class="col-span-2 bg-rose-700 text-white py-3 rounded-lg font-bold text-xs shadow-md">영상 추출</button>
+--
+
+이곳에 원하는 내용을
+입력해보세요.</textarea>
+
+        <div class="grid grid-cols-3 gap-2 mt-1">
+            <button id="apply-btn" class="col-span-2 bg-indigo-600 active:bg-indigo-800 text-white py-3 rounded-lg font-bold text-sm shadow-md transition-all">
+                적용 및 재생
+            </button>
+            <button id="record-btn" class="bg-rose-700 active:bg-rose-900 text-white py-3 rounded-lg font-bold text-[11px] shadow-md transition-all">
+                영상으로 만들기
+            </button>
         </div>
     </div>
 
     <div class="preview-section" id="fullscreen-target">
-        <div class="recording-dot" id="recording-indicator">● RECORDING</div>
-        <div id="subtitle-display">자막을 입력하고 적용을 눌러주세요</div>
+        <div class="recording-indicator" id="recording-indicator">● RECORDING</div>
+        <div id="subtitle-display"></div>
 
         <div class="controls" id="ui-controls">
             <button id="play-pause">
@@ -281,30 +244,13 @@
     </div>
 </div>
 
-<!-- Save Result Modal -->
+<!-- Modal -->
 <div id="save-modal" onclick="this.style.display='none'">
     <div class="bg-zinc-800 p-8 rounded-3xl max-w-sm w-full text-center border border-zinc-700 shadow-2xl" onclick="event.stopPropagation()">
-        <div class="text-emerald-400 mb-2">
-            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-        </div>
         <h2 class="text-xl font-bold text-white mb-2">저장 완료!</h2>
-        <p class="text-gray-400 text-sm mb-4">아래 코드를 보관하거나 공유하세요.</p>
+        <p class="text-gray-400 text-sm mb-4">아래 코드를 입력하여 어디서든 불러오세요.</p>
         <div id="result-code" class="text-3xl font-black text-indigo-400 bg-black/40 py-4 rounded-xl tracking-widest mb-6">------</div>
         <button onclick="document.getElementById('save-modal').style.display='none'" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">확인</button>
-    </div>
-</div>
-
-<!-- URL Help Modal -->
-<div id="link-modal" onclick="this.style.display='none'">
-    <div class="bg-zinc-800 p-6 rounded-2xl max-w-sm text-center border border-zinc-700 shadow-2xl" onclick="event.stopPropagation()">
-        <h2 class="text-xl font-bold text-indigo-400 mb-4">링크 연결 안내</h2>
-        <p class="text-sm text-gray-300 leading-relaxed mb-6">
-            게시글을 열고 본문을 <strong>나누어서 복사</strong>하신 뒤, <strong>[이어서 붙이기]</strong> 버튼을 반복해서 눌러주세요!
-        </p>
-        <div class="flex gap-2">
-            <button id="modal-confirm-btn" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-bold">게시글 열기</button>
-            <button onclick="document.getElementById('link-modal').style.display='none'" class="flex-1 bg-zinc-600 text-white py-2 rounded-lg font-bold">닫기</button>
-        </div>
     </div>
 </div>
 
@@ -312,28 +258,29 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Firebase Config
     const firebaseConfig = JSON.parse(__firebase_config);
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'subtitle-previewer';
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'subtitle-smart-viewer';
 
     let user = null;
 
-    // UI Elements
+    // UI Refs
     const vttInput = document.getElementById('vtt-input');
-    const urlInput = document.getElementById('url-input');
-    const loadCodeInput = document.getElementById('load-code-input');
     const subtitleDisplay = document.getElementById('subtitle-display');
+    const playPauseBtn = document.getElementById('play-pause');
     const seekBar = document.getElementById('seek-bar');
     const timeDisplay = document.getElementById('time-display');
+    const applyBtn = document.getElementById('apply-btn');
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.getElementById('parse-status');
     const toast = document.getElementById('toast');
+    const loadCodeInput = document.getElementById('load-code-input');
     const recordingIndicator = document.getElementById('recording-indicator');
 
-    // State
     let cues = [];
     let currentTime = 0;
     let isPlaying = false;
@@ -343,12 +290,10 @@
     let mediaRecorder = null;
     let recordedChunks = [];
 
-    // Auth Initialization
-    async function initAuth() {
-        await signInAnonymously(auth);
-    }
+    // Auth Init
+    onAuthStateChanged(auth, u => { user = u; });
+    const initAuth = async () => { await signInAnonymously(auth); };
     initAuth();
-    onAuthStateChanged(auth, (u) => { user = u; });
 
     function showToast(msg) {
         toast.innerText = msg;
@@ -358,139 +303,129 @@
 
     // --- Cloud Functions ---
     document.getElementById('save-btn').onclick = async () => {
-        if (!user) { showToast("로그인 중입니다..."); return; }
-        if (!vttInput.value.trim()) { showToast("저장할 내용이 없습니다."); return; }
+        if (!user) { showToast("연결 중..."); return; }
+        if (!vttInput.value.trim()) return;
 
-        const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
         try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'subtitles', randomCode), {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'subtitles', code), {
                 content: vttInput.value,
-                url: urlInput.value,
-                createdAt: Date.now()
+                updatedAt: Date.now()
             });
-            document.getElementById('result-code').innerText = randomCode;
+            document.getElementById('result-code').innerText = code;
             document.getElementById('save-modal').style.display = 'flex';
-        } catch (e) {
-            console.error(e);
-            showToast("저장에 실패했습니다.");
-        }
+        } catch (e) { showToast("저장 실패"); }
     };
 
     document.getElementById('load-btn').onclick = async () => {
-        if (!user) return;
         const code = loadCodeInput.value.trim().toUpperCase();
-        if (!code) { showToast("코드를 입력해주세요."); return; }
-
+        if (!code) return;
         try {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'subtitles', code);
-            const docSnap = await getDoc(docRef);
-
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                vttInput.value = data.content;
-                urlInput.value = data.url || "";
-                showToast("데이터를 불러왔습니다!");
-                document.getElementById('apply-btn').click();
-            } else {
-                showToast("해당 코드를 찾을 수 없습니다.");
-            }
-        } catch (e) {
-            console.error(e);
-            showToast("불러오기 실패");
-        }
+            const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'subtitles', code));
+            if (snap.exists()) {
+                vttInput.value = snap.data().content;
+                applyBtn.click();
+                showToast("불러오기 완료");
+            } else { showToast("코드가 없습니다."); }
+        } catch (e) { showToast("불러오기 에러"); }
     };
 
-    // --- Video Recording Function ---
+    // --- Recording ---
     document.getElementById('record-btn').onclick = async () => {
-        if (isPlaying) togglePlay(); // 일단 정지
+        if (isPlaying) togglePlay();
         currentTime = 0;
         updateDisplay();
 
         try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: { cursor: "never" },
-                audio: false
-            });
-
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
             recordedChunks = [];
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-            
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) recordedChunks.push(e.data);
-            };
-
+            mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
             mediaRecorder.onstop = () => {
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `subtitle_video_${Date.now()}.webm`;
+                a.download = `subtitle_${Date.now()}.webm`;
                 a.click();
                 recordingIndicator.style.display = 'none';
-                showToast("영상이 저장되었습니다!");
-                stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach(t => t.stop());
             };
-
             recordingIndicator.style.display = 'block';
             mediaRecorder.start();
-            togglePlay(); // 재생 시작
-
-            // 영상 길이만큼 자동 정지 로직 (옵션)
-            setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
-            }, (maxTime + 1) * 1000);
-
-        } catch (err) {
-            console.error(err);
-            showToast("화면 녹화 권한이 필요합니다.");
-        }
+            togglePlay();
+        } catch (e) { showToast("녹화 권한이 필요합니다."); }
     };
 
-    // --- Core Subtitle Logic ---
-    function parseSubtitles(text) {
+    // --- Parser & Engine ---
+    function parseSubtitlesSmart(text) {
         const rawLines = text.split('\n');
-        const results = [];
-        let autoStartTime = 0;
-        const durationPerLine = 2.5; 
-
-        for (let i = 0; i < rawLines.length; i++) {
-            const line = rawLines[i].trim();
-            if (line === '') {
-                autoStartTime += 1.0;
-                continue;
+        const timePairRegex = /((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})\s*-->\s*((?:\d+:)?(?:\d+:)?\d+[.,]\d{1,3})/;
+        const hasTimestamps = text.match(timePairRegex);
+        
+        if (hasTimestamps) {
+            const results = [];
+            let currentCue = null;
+            for (let line of rawLines) {
+                line = line.trim();
+                const match = line.match(timePairRegex);
+                if (match) {
+                    if (currentCue) results.push(currentCue);
+                    currentCue = { start: timeToSeconds(match[1]), end: timeToSeconds(match[2]), text: "" };
+                } else if (currentCue && line && !/^\d+$/.test(line) && line.toUpperCase() !== 'WEBVTT') {
+                    currentCue.text += (currentCue.text ? "\n" : "") + line;
+                }
             }
-            const start = autoStartTime;
-            const end = autoStartTime + durationPerLine;
-            results.push({ start, end, text: line });
-            autoStartTime = end + 0.3;
+            if (currentCue) results.push(currentCue);
+            return results.filter(c => c.text).sort((a,b) => a.start - b.start);
+        } else {
+            const results = [];
+            let autoStartTime = 0;
+            const durationPerBlock = 3;
+            const blocks = text.split(/\n--\n|\n--\r\n/).filter(b => b.trim());
+            
+            if (blocks.length > 1 || text.includes('--')) {
+                blocks.forEach(block => {
+                    results.push({ start: autoStartTime, end: autoStartTime + durationPerBlock, text: block.trim() });
+                    autoStartTime += durationPerBlock;
+                });
+            } else {
+                rawLines.filter(line => line.trim()).forEach(line => {
+                    results.push({ start: autoStartTime, end: autoStartTime + durationPerBlock, text: line.trim() });
+                    autoStartTime += durationPerBlock;
+                });
+            }
+            return results;
         }
-        return results;
+    }
+
+    function timeToSeconds(s) {
+        const p = s.replace(',', '.').split(':').reverse();
+        return parseFloat(p[0] || 0) + parseInt(p[1] || 0) * 60 + parseInt(p[2] || 0) * 3600;
+    }
+
+    function formatTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = (s % 60).toFixed(1);
+        return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(4, '0')}`;
     }
 
     function updateDisplay() {
-        if (currentTime >= maxTime - 0.1) {
+        if (currentTime >= maxTime - 0.5) {
             subtitleDisplay.innerText = "끝";
-            subtitleDisplay.style.opacity = 0.5;
-            if (isPlaying) { isPlaying = false; updatePlayStatus(); }
+            subtitleDisplay.style.opacity = 1;
+            if (isPlaying) { isPlaying = false; updatePlayStatus(); if(mediaRecorder) mediaRecorder.stop(); }
         } else {
-            const activeCue = cues.find(cue => currentTime >= cue.start && currentTime < cue.end);
-            if (activeCue) {
-                if (subtitleDisplay.innerText !== activeCue.text) {
-                    subtitleDisplay.innerText = activeCue.text;
-                    subtitleDisplay.style.opacity = 1;
-                }
+            const cue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
+            if (cue) {
+                subtitleDisplay.innerText = cue.text;
+                subtitleDisplay.style.opacity = 1;
             } else {
                 subtitleDisplay.style.opacity = 0;
             }
         }
         timeDisplay.innerText = formatTime(currentTime);
         seekBar.value = currentTime;
-    }
-
-    function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = (seconds % 60).toFixed(1);
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(4, '0')}`;
     }
 
     function animate(timestamp) {
@@ -504,7 +439,6 @@
             isPlaying = false;
             updatePlayStatus();
             updateDisplay();
-            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
             return;
         }
         updateDisplay();
@@ -524,56 +458,29 @@
         if (isPlaying) { lastTimestamp = 0; requestAnimationFrame(animate); }
     }
 
-    // --- Basic Event Listeners ---
-    document.getElementById('apply-btn').onclick = () => {
-        cues = parseSubtitles(vttInput.value);
-        if (cues.length > 0) {
+    // --- Events ---
+    applyBtn.onclick = () => {
+        const newCues = parseSubtitlesSmart(vttInput.value);
+        if (newCues.length > 0) {
+            cues = newCues;
             maxTime = Math.max(...cues.map(c => c.end));
             seekBar.max = maxTime;
             currentTime = 0;
+            statusDot.className = "status-dot bg-green-500";
+            statusText.innerHTML = `<span class="status-dot bg-green-500"></span> ${cues.length}개 적용`;
             updateDisplay();
-            if (!isPlaying) togglePlay();
+            togglePlay();
         }
     };
 
-    document.getElementById('append-btn').onclick = async () => {
-        try {
-            const text = await navigator.clipboard.readText();
-            if (text) {
-                vttInput.value += (vttInput.value ? "\n\n" : "") + text;
-                showToast("내용이 추가되었습니다!");
-            }
-        } catch(e) { showToast("클립보드 권한이 필요합니다."); }
-    };
-
-    document.getElementById('clean-btn').onclick = () => {
-        vttInput.value = vttInput.value.split('\n').map(l => l.trim()).filter(l => l).join('\n\n');
-        showToast("정제 완료");
-    };
-
-    document.getElementById('url-fetch-btn').onclick = () => {
-        if (urlInput.value.startsWith('http')) {
-            document.getElementById('link-modal').style.display = 'flex';
-            document.getElementById('modal-confirm-btn').onclick = () => window.open(urlInput.value, '_blank');
-        }
-    };
-
-    document.getElementById('play-pause').onclick = togglePlay;
-    seekBar.oninput = (e) => { currentTime = parseFloat(e.target.value); updateDisplay(); };
-    document.getElementById('toggle-size-btn').onclick = () => {
-        const expanded = document.getElementById('input-section').classList.toggle('expanded');
-        document.getElementById('toggle-size-btn').innerText = expanded ? "축소" : "확대";
-    };
-    document.getElementById('clear-all-btn').onclick = () => vttInput.value = "";
+    document.getElementById('play-pause').onclick = e => { e.stopPropagation(); togglePlay(); };
+    seekBar.oninput = e => { currentTime = parseFloat(e.target.value); updateDisplay(); };
     document.getElementById('fullscreen-btn').onclick = () => {
         if (!document.fullscreenElement) document.getElementById('fullscreen-target').requestFullscreen();
         else document.exitFullscreen();
     };
 
-    window.onload = () => {
-        vttInput.value = "클라우드 저장 기능이 추가되었습니다!\n\n저장 버튼을 누르면 코드가 생성됩니다.\n해당 코드를 다른 기기에서 입력하면 그대로 불러옵니다.\n\n영상 추출 버튼으로 결과물을 저장해보세요.";
-        document.getElementById('apply-btn').click();
-    };
+    window.onload = () => applyBtn.click();
 </script>
 
 </body>
