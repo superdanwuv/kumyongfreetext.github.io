@@ -3,312 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>자막 프리뷰어 - v44</title>
+    <title>자막 프리뷰어 - 기본 버전</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #1a1a1a; color: #e5e5e5; margin: 0; overflow: hidden; height: 100vh; }
         .editor-container { height: 100vh; display: flex; flex-direction: column; }
         @media (min-width: 768px) { .editor-container { flex-direction: row; } .input-section { width: 380px; height: 100% !important; border-right: 1px solid #404040; } }
-        .input-section { background-color: #262626; display: flex; flex-direction: column; padding: 0.75rem; z-index: 20; height: 35%; border-bottom: 1px solid #404040; flex-shrink: 0; }
+        .input-section { background-color: #262626; display: flex; flex-direction: column; padding: 1rem; z-index: 20; height: 40%; border-bottom: 1px solid #404040; flex-shrink: 0; }
         .preview-section { flex-grow: 1; background-color: #000; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        textarea { flex-grow: 1; background-color: #121212; color: #00ff41; font-family: 'Courier New', monospace; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #404040; resize: none; outline: none; font-size: 0.8rem; line-height: 1.5; }
-        #subtitle-display { color: white; font-size: 1.5rem; text-align: center; text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8); max-width: 90%; font-weight: 700; z-index: 5; transition: opacity 0.2s; pointer-events: none; }
-        @media (min-width: 768px) { #subtitle-display { font-size: 2.8rem; } }
-        .controls { position: absolute; bottom: 1.5rem; background: rgba(30, 30, 30, 0.85); padding: 0.6rem 1rem; border-radius: 16px; display: flex; gap: 0.8rem; align-items: center; width: 90%; max-width: 500px; z-index: 15; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: #333; color: #ccc; }
-        .voice-select { background: #333; color: white; font-size: 11px; border-radius: 4px; padding: 2px 4px; border: none; outline: none; }
-        .loading-spinner { border: 2px solid rgba(255,255,255,0.1); border-left-color: #6366f1; border-radius: 50%; width: 12px; height: 12px; animation: spin 1s linear infinite; display: inline-block; margin-right: 4px; vertical-align: middle; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Modal Styles */
-        #settings-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: none; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background: #2d2d2d; width: 100%; max-width: 400px; border-radius: 20px; padding: 1.5rem; border: 1px solid #444; }
+        textarea { flex-grow: 1; background-color: #121212; color: #00ff41; font-family: 'Courier New', monospace; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #404040; resize: none; outline: none; font-size: 0.85rem; line-height: 1.6; }
+        #subtitle-display { color: white; font-size: 1.8rem; text-align: center; text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.9); max-width: 85%; font-weight: 700; z-index: 5; transition: opacity 0.15s; pointer-events: none; }
+        @media (min-width: 768px) { #subtitle-display { font-size: 3rem; } }
+        .controls { position: absolute; bottom: 2rem; background: rgba(30, 30, 30, 0.8); padding: 0.75rem 1.25rem; border-radius: 20px; display: flex; gap: 1rem; align-items: center; width: 90%; max-width: 600px; z-index: 15; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-primary { background-color: #4f46e5; color: white; padding: 0.6rem; border-radius: 0.75rem; font-weight: 700; font-size: 0.9rem; transition: all 0.2s; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-primary:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
 
-<!-- Settings Modal -->
-<div id="settings-modal">
-    <div class="modal-content">
-        <h2 class="text-lg font-bold mb-4 text-white">API 설정</h2>
-        <p class="text-xs text-gray-400 mb-4">Gemini API 키를 입력해주세요. 키는 브라우저 세션에만 임시 저장됩니다.</p>
-        <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-300 mb-1">Google AI API Key</label>
-            <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-black border border-gray-600 rounded-lg p-2 text-sm text-white focus:border-indigo-500 outline-none">
-        </div>
-        <button id="save-settings" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl font-bold text-sm">저장 및 닫기</button>
-    </div>
-</div>
-
 <div class="editor-container">
     <div class="input-section">
-        <div class="flex justify-between items-center mb-2">
-            <h1 class="text-sm font-bold text-indigo-400">AI Subtitle Player</h1>
-            <div class="flex items-center gap-2">
-                <select id="voice-name" class="voice-select">
-                    <option value="Kore">Kore (표준)</option>
-                    <option value="Zephyr">Zephyr (밝음)</option>
-                    <option value="Charon">Charon (깊음)</option>
-                    <option value="Puck">Puck (경쾌함)</option>
-                </select>
-                <button id="open-settings" class="p-1 hover:bg-white/10 rounded-md transition-colors" title="설정">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
+        <h1 class="text-sm font-bold text-indigo-400 mb-3 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+                <path d="M3 5.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zM3 8a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9A.5.5 0 0 1 3 8zm0 2.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"/>
+            </svg>
+            Subtitle Editor
+        </h1>
         
-        <textarea id="vtt-input" spellcheck="false">설정 버튼을 눌러 API 키를 입력해주세요.
+        <textarea id="vtt-input" spellcheck="false" placeholder="내용을 입력하세요.">자막 프리뷰어에 오신 것을 환영합니다.
 --
-키가 없으면 음성이 생성되지 않습니다.
+구분선(--)을 사용하여 자막을 나눌 수 있습니다.
 --
-보안을 위해 코드 내부의 키를 모두 제거했습니다.</textarea>
+하단의 재생 버튼을 눌러 확인해 보세요.</textarea>
 
-        <div class="mt-3 flex flex-col gap-2">
-            <button id="apply-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">
-                음성 생성 시작 (API 키 필요)
-            </button>
-            <div class="flex gap-2 items-center">
-                <span id="ai-status" class="status-badge">● 대기 중</span>
-                <span id="progress-info" class="status-badge hidden">0/0</span>
-                <div id="loading-icon" class="hidden"><div class="loading-spinner"></div></div>
-            </div>
-        </div>
+        <button id="apply-btn" class="btn-primary mt-4">
+            자막 데이터 업데이트
+        </button>
     </div>
 
-    <div class="preview-section" id="preview-area">
-        <div id="subtitle-display">먼저 API 설정을 완료해주세요</div>
+    <div class="preview-section">
+        <div id="subtitle-display">입력 후 업데이트를 눌러주세요</div>
+        
         <div class="controls">
             <button id="play-pause" class="text-white hover:text-indigo-400 transition-colors">
-                <svg id="play-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <svg id="play-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
                     <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
                 </svg>
-                <svg id="pause-svg" class="hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <svg id="pause-svg" class="hidden" xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 16 16">
                     <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>
                 </svg>
             </button>
-            <input type="range" id="seek-bar" class="flex-grow accent-indigo-500 h-1.5" value="0" step="0.01" min="0">
-            <span id="time-display" class="text-[11px] text-yellow-400 font-mono w-10 text-right">00.0</span>
+            <input type="range" id="seek-bar" class="flex-grow accent-indigo-500 h-1.5" value="0" step="0.1" min="0">
+            <span id="time-display" class="text-xs text-indigo-300 font-mono w-12 text-right">00.0s</span>
         </div>
     </div>
 </div>
 
 <script>
-    // 전역 상태
-    let userApiKey = ""; 
-    let audioCtx = null;
-    let cues = [];
-    let currentTime = 0;
-    let isPlaying = false;
-    let totalDuration = 0;
-    let currentSource = null;
-    let animationFrame = null;
-    let lastTime = 0;
-
-    // DOM 요소
     const vttInput = document.getElementById('vtt-input');
     const subtitleDisplay = document.getElementById('subtitle-display');
     const playPauseBtn = document.getElementById('play-pause');
     const seekBar = document.getElementById('seek-bar');
     const timeDisplay = document.getElementById('time-display');
     const applyBtn = document.getElementById('apply-btn');
-    const aiStatus = document.getElementById('ai-status');
-    const progressInfo = document.getElementById('progress-info');
-    const loadingIcon = document.getElementById('loading-icon');
-    const voiceSelect = document.getElementById('voice-name');
     const playSvg = document.getElementById('play-svg');
     const pauseSvg = document.getElementById('pause-svg');
-    
-    // 모달 제어
-    const modal = document.getElementById('settings-modal');
-    const openSettingsBtn = document.getElementById('open-settings');
-    const saveSettingsBtn = document.getElementById('save-settings');
-    const apiKeyInput = document.getElementById('api-key-input');
 
-    openSettingsBtn.onclick = () => { modal.style.display = 'flex'; };
-    saveSettingsBtn.onclick = () => {
-        userApiKey = apiKeyInput.value.trim();
-        modal.style.display = 'none';
-        if(userApiKey) {
-            aiStatus.innerText = "● 키 설정됨";
-            aiStatus.className = "status-badge bg-indigo-900 text-indigo-300";
-        }
-    };
+    let cues = [];
+    let currentTime = 0;
+    let isPlaying = false;
+    let totalDuration = 0;
+    let timerId = null;
 
-    // PCM 데이터를 AudioBuffer로 변환
-    async function decodePcmData(pcmDataB64, sampleRate = 24000) {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
-        
-        try {
-            const byteString = atob(pcmDataB64);
-            const buffer = new ArrayBuffer(byteString.length);
-            const uint8Array = new Uint8Array(buffer);
-            for (let i = 0; i < byteString.length; i++) uint8Array[i] = byteString.charCodeAt(i);
-            
-            const pcmInt16 = new Int16Array(buffer);
-            const audioBuffer = audioCtx.createBuffer(1, pcmInt16.length, sampleRate);
-            const channelData = audioBuffer.getChannelData(0);
-            for (let i = 0; i < pcmInt16.length; i++) channelData[i] = pcmInt16[i] / 32768.0;
-            return audioBuffer;
-        } catch (e) {
-            console.error("오디오 디코딩 오류:", e);
-            return null;
-        }
-    }
-
-    async function fetchGeminiTTS(text) {
-        if (!userApiKey) {
-            throw new Error("API 키가 없습니다.");
-        }
-        const voiceName = voiceSelect.value;
-        const payload = {
-            contents: [{ parts: [{ text: text }] }],
-            generationConfig: {
-                responseModalities: ["AUDIO"],
-                speechConfig: {
-                    voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } }
-                }
-            }
-        };
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${userApiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        
-        if (!response.ok) throw new Error("API 요청 실패");
-        
-        const result = await response.json();
-        const pcmData = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!pcmData) return null;
-        return await decodePcmData(pcmData, 24000);
-    }
-
-    applyBtn.onclick = async () => {
-        if (!userApiKey) {
-            modal.style.display = 'flex';
-            return;
-        }
-
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
-
+    function parseSubtitles() {
         const text = vttInput.value;
-        const blocks = text.split(/\n--\n|\n--\r\n|--/).map(b => b.trim()).filter(b => b);
-        
-        applyBtn.disabled = true;
-        applyBtn.innerText = "처리 중...";
-        aiStatus.innerText = "● 생성 중";
-        progressInfo.classList.remove('hidden');
-        loadingIcon.classList.remove('hidden');
+        const blocks = text.split(/\n--\n|--/).map(b => b.trim()).filter(b => b);
         
         cues = [];
-        let accumulatedTime = 0;
-        const gap = 0.2;
+        let startTime = 0;
+        const durationPerBlock = 2.5; // 기본적으로 한 문장당 2.5초 노출
 
-        try {
-            const results = await Promise.all(blocks.map(block => fetchGeminiTTS(block)));
-            results.forEach((audioBuffer, i) => {
-                const duration = audioBuffer ? audioBuffer.duration : 2.0;
-                cues.push({ text: blocks[i], start: accumulatedTime, end: accumulatedTime + duration, buffer: audioBuffer });
-                accumulatedTime += duration + gap;
+        blocks.forEach((content) => {
+            cues.push({
+                text: content,
+                start: startTime,
+                end: startTime + durationPerBlock
             });
+            startTime += durationPerBlock;
+        });
 
-            totalDuration = accumulatedTime;
-            seekBar.max = totalDuration;
-            currentTime = 0;
-            aiStatus.innerText = "● 준비 완료";
-            aiStatus.className = "status-badge bg-green-900 text-green-300";
-            progressInfo.innerText = `${blocks.length}문장 완료`;
-        } catch (err) {
-            aiStatus.innerText = "● 오류: 키 확인 필요";
-            aiStatus.className = "status-badge bg-red-900 text-red-300";
-        } finally {
-            applyBtn.disabled = false;
-            applyBtn.innerText = "음성 재생성";
-            loadingIcon.classList.add('hidden');
-            subtitleDisplay.innerText = "준비 완료. 재생을 눌러보세요!";
-            updateUI();
-        }
-    };
+        totalDuration = startTime;
+        seekBar.max = totalDuration;
+        currentTime = 0;
+        updateUI();
+    }
 
     function updateUI() {
-        const cue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
-        if (cue) {
-            subtitleDisplay.innerText = cue.text;
-            subtitleDisplay.style.opacity = 1;
-        } else if (currentTime >= totalDuration && totalDuration > 0) {
-            subtitleDisplay.innerText = "끝";
+        const activeCue = cues.find(c => currentTime >= c.start && currentTime < c.end);
+        
+        if (activeCue) {
+            subtitleDisplay.innerText = activeCue.text;
             subtitleDisplay.style.opacity = 1;
         } else {
             subtitleDisplay.style.opacity = 0;
         }
-        timeDisplay.innerText = currentTime.toFixed(1);
+
+        timeDisplay.innerText = `${currentTime.toFixed(1)}s`;
         seekBar.value = currentTime;
     }
 
-    function playAudioNode(buffer, offset = 0) {
-        if (currentSource) { try { currentSource.stop(); } catch(e) {} currentSource = null; }
-        if (!buffer || !audioCtx) return;
-        currentSource = audioCtx.createBufferSource();
-        currentSource.buffer = buffer;
-        currentSource.connect(audioCtx.destination);
-        currentSource.start(0, offset);
-    }
+    applyBtn.onclick = () => {
+        parseSubtitles();
+        subtitleDisplay.innerText = "데이터가 업데이트되었습니다.";
+        subtitleDisplay.style.opacity = 1;
+    };
 
-    function syncAudio() {
-        if (currentSource) { try { currentSource.stop(); } catch(e) {} currentSource = null; }
-        if (!isPlaying) return;
-        const cue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
-        if (cue && cue.buffer) playAudioNode(cue.buffer, Math.max(0, currentTime - cue.start));
-    }
-
-    function step(timestamp) {
-        if (!isPlaying) return;
-        if (!lastTime) lastTime = timestamp;
-        const dt = (timestamp - lastTime) / 1000;
-        lastTime = timestamp;
-        const prevTime = currentTime;
-        currentTime += dt;
-
-        if (currentTime >= totalDuration) { currentTime = totalDuration; isPlaying = false; togglePlayUI(); }
-        const currentCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
-        const prevCue = cues.find(c => prevTime >= c.start && prevTime <= c.end);
-        if (currentCue !== prevCue) syncAudio();
-
-        updateUI();
-        animationFrame = requestAnimationFrame(step);
-    }
-
-    function togglePlayUI() {
-        if (isPlaying) { playSvg.classList.add('hidden'); pauseSvg.classList.remove('hidden'); }
-        else { playSvg.classList.remove('hidden'); pauseSvg.classList.add('hidden'); }
-    }
-
-    playPauseBtn.onclick = async () => {
-        if (cues.length === 0) return;
-        if (audioCtx.state === 'suspended') await audioCtx.resume();
+    playPauseBtn.onclick = () => {
         isPlaying = !isPlaying;
-        togglePlayUI();
+        
         if (isPlaying) {
+            playSvg.classList.add('hidden');
+            pauseSvg.classList.remove('hidden');
+            
             if (currentTime >= totalDuration) currentTime = 0;
-            lastTime = 0;
-            syncAudio();
-            animationFrame = requestAnimationFrame(step);
+
+            timerId = setInterval(() => {
+                currentTime += 0.1;
+                if (currentTime >= totalDuration) {
+                    currentTime = totalDuration;
+                    clearInterval(timerId);
+                    isPlaying = false;
+                    playSvg.classList.remove('hidden');
+                    pauseSvg.classList.add('hidden');
+                }
+                updateUI();
+            }, 100);
         } else {
-            if (currentSource) { try { currentSource.stop(); } catch(e) {} currentSource = null; }
-            cancelAnimationFrame(animationFrame);
+            playSvg.classList.remove('hidden');
+            pauseSvg.classList.add('hidden');
+            clearInterval(timerId);
         }
     };
 
     seekBar.oninput = (e) => {
         currentTime = parseFloat(e.target.value);
-        if (isPlaying) syncAudio();
         updateUI();
     };
+
+    // 초기 파싱
+    parseSubtitles();
 </script>
 
 </body>
