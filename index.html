@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>자막 프리뷰어 - Gemini AI Voice</title>
+    <title>자막 프리뷰어 - 꿈용판v.4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
@@ -13,11 +13,13 @@
         .input-section { background-color: #262626; display: flex; flex-direction: column; padding: 0.75rem; z-index: 20; height: 35%; border-bottom: 1px solid #404040; flex-shrink: 0; }
         .preview-section { flex-grow: 1; background-color: #000; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         textarea { flex-grow: 1; background-color: #121212; color: #00ff41; font-family: 'Courier New', monospace; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #404040; resize: none; outline: none; font-size: 0.8rem; line-height: 1.5; }
-        #subtitle-display { color: white; font-size: 1.5rem; text-align: center; text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8); max-width: 90%; font-weight: 700; z-index: 5; transition: opacity 0.3s; }
+        #subtitle-display { color: white; font-size: 1.5rem; text-align: center; text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8); max-width: 90%; font-weight: 700; z-index: 5; transition: opacity 0.2s; }
         @media (min-width: 768px) { #subtitle-display { font-size: 2.8rem; } }
         .controls { position: absolute; bottom: 1.5rem; background: rgba(30, 30, 30, 0.85); padding: 0.6rem 1rem; border-radius: 16px; display: flex; gap: 0.8rem; align-items: center; width: 90%; max-width: 500px; z-index: 15; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
         .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: #333; color: #ccc; }
         .voice-select { background: #333; color: white; font-size: 11px; border-radius: 4px; padding: 2px 4px; border: none; outline: none; }
+        .loading-spinner { border: 2px solid rgba(255,255,255,0.1); border-left-color: #6366f1; border-radius: 50%; width: 12px; height: 12px; animation: spin 1s linear infinite; display: inline-block; margin-right: 4px; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -27,33 +29,34 @@
         <div class="flex justify-between items-center mb-2">
             <h1 class="text-sm font-bold text-indigo-400">AI Subtitle Player</h1>
             <select id="voice-name" class="voice-select">
-                <option value="Kore">목소리: Kore (차분함)</option>
-                <option value="Zephyr">목소리: Zephyr (밝음)</option>
-                <option value="Puck">목소리: Puck (활기참)</option>
-                <option value="Charon">목소리: Charon (깊음)</option>
+                <option value="Kore">Kore (한국어 표준)</option>
+                <option value="Zephyr">Zephyr (활기찬)</option>
+                <option value="Charon">Charon (차분한)</option>
+                <option value="Puck">Puck (가벼운)</option>
             </select>
         </div>
         
-        <textarea id="vtt-input" spellcheck="false">안녕하세요!
+        <textarea id="vtt-input" spellcheck="false">안녕하세요! 속도를 최적화했습니다.
 --
-제공해주신 AI 키가 적용되었습니다.
+문장별로 빠르게 생성하여
+거의 즉시 확인할 수 있습니다.
 --
-이제 버튼을 누르면
-아주 자연스러운 목소리가 나옵니다.</textarea>
+소리가 잘 들리는지 확인해 보세요.</textarea>
 
         <div class="mt-3 flex flex-col gap-2">
             <button id="apply-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all">
-                AI 음성 생성 시작
+                AI 음성 빛의 속도로 생성
             </button>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
                 <span id="ai-status" class="status-badge">● 대기 중</span>
                 <span id="progress-info" class="status-badge hidden">0/0</span>
+                <div id="loading-icon" class="hidden"><div class="loading-spinner"></div></div>
             </div>
         </div>
     </div>
 
     <div class="preview-section" id="preview-area">
-        <div id="subtitle-display">준비 버튼을 눌러주세요</div>
+        <div id="subtitle-display">텍스트 입력 후 생성 버튼을 눌러주세요</div>
         <div class="controls">
             <button id="play-pause" class="text-white hover:text-indigo-400 transition-colors">
                 <svg id="play-svg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
@@ -70,7 +73,6 @@
 </div>
 
 <script>
-    // 사용자로부터 받은 API 키 적용
     const apiKey = "AIzaSyDskIJyWVpvHMY0GGw-tx1GGEBgGlaWvkk"; 
     
     const vttInput = document.getElementById('vtt-input');
@@ -81,6 +83,7 @@
     const applyBtn = document.getElementById('apply-btn');
     const aiStatus = document.getElementById('ai-status');
     const progressInfo = document.getElementById('progress-info');
+    const loadingIcon = document.getElementById('loading-icon');
     const voiceSelect = document.getElementById('voice-name');
     const playSvg = document.getElementById('play-svg');
     const pauseSvg = document.getElementById('pause-svg');
@@ -93,37 +96,44 @@
     let animationFrame = null;
     let lastTime = 0;
 
+    // WAV 변환 시 볼륨 최적화를 위해 PCM 데이터를 그대로 사용
     function pcmToWav(pcmDataB64, sampleRate = 24000) {
-        const byteCharacters = atob(pcmDataB64);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        try {
+            const byteCharacters = atob(pcmDataB64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const buffer = byteArray.buffer;
+            
+            const wavHeader = new ArrayBuffer(44);
+            const view = new DataView(wavHeader);
+            
+            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(4, 36 + buffer.byteLength, true);
+            view.setUint32(8, 0x57415645, false); // "WAVE"
+            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint16(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // Mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true); // (SampleRate * Channels * BitsPerSample) / 8
+            view.setUint16(32, 2, true); // (Channels * BitsPerSample) / 8
+            view.setUint16(34, 16, true);
+            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(40, buffer.byteLength, true);
+            
+            const combined = new Uint8Array(wavHeader.byteLength + buffer.byteLength);
+            combined.set(new Uint8Array(wavHeader), 0);
+            combined.set(new Uint8Array(buffer), 44);
+            
+            const blob = new Blob([combined], { type: 'audio/wav' });
+            return URL.createObjectURL(blob);
+        } catch (e) {
+            console.error("WAV 변환 오류:", e);
+            return null;
         }
-        const byteArray = new Uint8Array(byteNumbers);
-        const buffer = byteArray.buffer;
-        
-        const wavHeader = new ArrayBuffer(44);
-        const view = new DataView(wavHeader);
-        
-        view.setUint32(0, 0x52494646, false); // "RIFF"
-        view.setUint32(4, 36 + buffer.byteLength, true);
-        view.setUint32(8, 0x57415645, false); // "WAVE"
-        view.setUint32(12, 0x666d7420, false); // "fmt "
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true); // PCM
-        view.setUint16(22, 1, true); // Mono
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * 2, true);
-        view.setUint16(32, 2, true);
-        view.setUint16(34, 16, true);
-        view.setUint32(36, 0x64617461, false); // "data"
-        view.setUint32(40, buffer.byteLength, true);
-        
-        const combined = new Uint8Array(wavHeader.byteLength + buffer.byteLength);
-        combined.set(new Uint8Array(wavHeader), 0);
-        combined.set(new Uint8Array(buffer), 44);
-        
-        return URL.createObjectURL(new Blob([combined], { type: 'audio/wav' }));
     }
 
     async function fetchGeminiTTS(text) {
@@ -135,12 +145,12 @@
                 speechConfig: {
                     voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } }
                 }
-            },
-            model: "gemini-2.5-flash-preview-tts"
+            }
         };
 
+        // 지수 백오프 적용된 페치
         let retries = 5;
-        let delay = 1000;
+        let delay = 500;
 
         while (retries > 0) {
             try {
@@ -150,17 +160,20 @@
                     body: JSON.stringify(payload)
                 });
                 
-                if (!response.ok) throw new Error("API 요청 실패");
+                if (!response.ok) throw new Error("HTTP error " + response.status);
                 
                 const result = await response.json();
                 const pcmData = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
                 
-                if (!pcmData) throw new Error("음성 데이터 없음");
+                if (!pcmData) throw new Error("Empty audio data");
 
                 const audioUrl = pcmToWav(pcmData, 24000);
+                if (!audioUrl) throw new Error("WAV conversion failed");
+
                 return new Promise((resolve) => {
                     const tempAudio = new Audio(audioUrl);
                     tempAudio.onloadedmetadata = () => resolve({ url: audioUrl, duration: tempAudio.duration });
+                    tempAudio.onerror = () => resolve({ url: audioUrl, duration: 2.0 }); // 메타데이터 로드 실패 시 기본값
                 });
             } catch (err) {
                 retries--;
@@ -175,42 +188,53 @@
         const text = vttInput.value;
         const blocks = text.split(/\n--\n|\n--\r\n|--/).map(b => b.trim()).filter(b => b);
         
+        if (blocks.length === 0) return;
+
         applyBtn.disabled = true;
-        applyBtn.innerText = "AI 목소리 생성 중...";
-        aiStatus.innerText = "● 생성 중";
+        applyBtn.innerText = "생성 중...";
+        aiStatus.innerText = "● 처리 중";
         progressInfo.classList.remove('hidden');
+        loadingIcon.classList.remove('hidden');
         
         cues = [];
         let accumulatedTime = 0;
-        const gap = 0.4;
+        const gap = 0.3; // 문장 사이 간격 최적화
 
-        for (let i = 0; i < blocks.length; i++) {
-            progressInfo.innerText = `${i + 1} / ${blocks.length}`;
-            const voiceData = await fetchGeminiTTS(blocks[i]);
+        // 병렬 처리를 시도하여 속도 향상
+        try {
+            const results = await Promise.all(blocks.map(block => fetchGeminiTTS(block)));
             
-            const duration = voiceData ? voiceData.duration : 2.5;
-            const audioUrl = voiceData ? voiceData.url : null;
+            results.forEach((voiceData, i) => {
+                const duration = voiceData ? voiceData.duration : 2.0;
+                const audioUrl = voiceData ? voiceData.url : null;
 
-            cues.push({
-                text: blocks[i],
-                start: accumulatedTime,
-                end: accumulatedTime + duration,
-                duration: duration,
-                audioUrl: audioUrl
+                cues.push({
+                    text: blocks[i],
+                    start: accumulatedTime,
+                    end: accumulatedTime + duration,
+                    duration: duration,
+                    audioUrl: audioUrl
+                });
+                accumulatedTime += duration + gap;
             });
-            accumulatedTime += duration + gap;
-        }
 
-        totalDuration = accumulatedTime;
-        seekBar.max = totalDuration;
-        currentTime = 0;
-        
-        aiStatus.innerText = "● 준비 완료";
-        aiStatus.className = "status-badge bg-green-900 text-green-300";
-        applyBtn.disabled = false;
-        applyBtn.innerText = "다시 생성하기";
-        subtitleDisplay.innerText = "준비되었습니다. 재생 버튼을 누르세요.";
-        updateUI();
+            totalDuration = accumulatedTime;
+            seekBar.max = totalDuration;
+            currentTime = 0;
+            
+            aiStatus.innerText = "● 준비 완료";
+            aiStatus.className = "status-badge bg-green-900 text-green-300";
+            progressInfo.innerText = `${blocks.length}문장 생성됨`;
+        } catch (err) {
+            aiStatus.innerText = "● 생성 오류";
+            aiStatus.className = "status-badge bg-red-900 text-red-300";
+        } finally {
+            applyBtn.disabled = false;
+            applyBtn.innerText = "다시 생성하기";
+            loadingIcon.classList.add('hidden');
+            subtitleDisplay.innerText = "준비되었습니다. 재생 버튼을 눌러주세요.";
+            updateUI();
+        }
     };
 
     function updateUI() {
@@ -238,7 +262,8 @@
         const cue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
         if (cue && cue.audioUrl) {
             currentAudio = new Audio(cue.audioUrl);
-            currentAudio.currentTime = currentTime - cue.start;
+            currentAudio.volume = 1.0; // 볼륨 최대 설정
+            currentAudio.currentTime = Math.max(0, currentTime - cue.start);
             currentAudio.play().catch(() => {});
         }
     }
@@ -305,4 +330,5 @@
 </script>
 
 </body>
+</html>
 </html>
