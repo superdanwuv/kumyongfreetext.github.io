@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>자막 프리뷰어 - 스마트 파싱</title>
+    <title>자막 프리뷰어 - URL 및 스마트 클린</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap');
@@ -31,7 +31,7 @@
                 flex-direction: row;
             }
             .input-section {
-                width: 380px;
+                width: 400px;
                 height: 100% !important;
                 border-right: 1px solid #404040;
                 border-bottom: none;
@@ -44,9 +44,10 @@
             flex-direction: column;
             padding: 0.75rem;
             z-index: 20;
-            height: 35%; 
+            height: 45%; 
             border-bottom: 1px solid #404040;
             flex-shrink: 0;
+            gap: 0.5rem;
         }
 
         .preview-section {
@@ -72,6 +73,16 @@
             outline: none;
             font-size: 0.8rem;
             line-height: 1.4;
+        }
+
+        input[type="text"] {
+            background-color: #121212;
+            border: 1px solid #404040;
+            color: white;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.8rem;
+            outline: none;
         }
 
         #subtitle-display {
@@ -127,10 +138,11 @@
         }
 
         button {
-            padding: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        button:active {
+            transform: scale(0.95);
         }
 
         input[type="range"] {
@@ -138,35 +150,56 @@
             height: 6px;
             border-radius: 3px;
         }
+
+        /* Modal for Link Help */
+        #link-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
 
 <div class="editor-container">
     <div class="input-section">
-        <div class="flex justify-between items-center mb-1">
-            <h1 class="text-sm font-bold text-indigo-400">Subtitle Editor</h1>
+        <div class="flex justify-between items-center">
+            <h1 class="text-sm font-bold text-indigo-400">Subtitle Smart Editor</h1>
             <div id="parse-status" class="text-[10px] text-gray-400 bg-black/30 px-2 py-0.5 rounded-full">
-                <span class="status-dot bg-yellow-500"></span> 대기 중
+                <span class="status-dot bg-yellow-500 inline-block w-2 h-2 rounded-full mr-1"></span> 대기 중
+            </div>
+        </div>
+
+        <!-- URL 입력부 -->
+        <div class="flex flex-col gap-1 mt-1">
+            <label class="text-[10px] text-gray-400 ml-1">아카라이브/외부 링크 연동</label>
+            <div class="flex gap-2">
+                <input type="text" id="url-input" class="flex-grow" placeholder="https://arca.live/b/...">
+                <button id="url-fetch-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-lg text-xs font-bold">
+                    열기
+                </button>
             </div>
         </div>
         
-        <textarea id="vtt-input" spellcheck="false" placeholder="여기에 자막을 붙여넣으세요...">자막 프리뷰어입니다
+        <textarea id="vtt-input" spellcheck="false" placeholder="본문을 여기에 붙여넣으세요..."></textarea>
 
-엔터를 두 번 누르면 2초를 쉽니다.
-마침표가 있으면 0.5초를 더 쉽니다.
-
-이렇게 말이죠.</textarea>
-
-        <div class="mt-2">
-            <button id="apply-btn" class="w-full bg-indigo-600 active:bg-indigo-800 text-white py-2 rounded-lg font-bold text-sm shadow-md transition-colors">
-                적용하기
+        <div class="flex gap-2">
+            <button id="clean-btn" class="flex-1 bg-teal-700 hover:bg-teal-600 text-white py-2 rounded-lg font-bold text-xs shadow-md">
+                텍스트 정제
+            </button>
+            <button id="apply-btn" class="flex-[2] bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-sm shadow-md">
+                적용 및 재생
             </button>
         </div>
     </div>
 
     <div class="preview-section" id="fullscreen-target">
-        <div id="subtitle-display"></div>
+        <div id="subtitle-display">자막을 입력하고 적용을 눌러주세요</div>
 
         <div class="controls" id="ui-controls">
             <button id="play-pause">
@@ -191,19 +224,39 @@
     </div>
 </div>
 
+<!-- Modal -->
+<div id="link-modal" onclick="this.style.display='none'">
+    <div class="bg-zinc-800 p-6 rounded-2xl max-w-sm text-center border border-zinc-700 shadow-2xl" onclick="event.stopPropagation()">
+        <h2 class="text-xl font-bold text-indigo-400 mb-4">링크 연결 안내</h2>
+        <p class="text-sm text-gray-300 leading-relaxed mb-6">
+            브라우저 보안(CORS) 정책상 외부 사이트의 내용을 자동으로 긁어오는 것은 차단됩니다.<br><br>
+            확인 버튼을 누르면 해당 게시글이 새 탭에서 열립니다. <strong>본문을 전체 복사(Ctrl+A, Ctrl+C)</strong>하여 편집기에 붙여넣어 주세요!
+        </p>
+        <div class="flex gap-2">
+            <button id="modal-confirm-btn" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-bold">게시글 열기</button>
+            <button onclick="document.getElementById('link-modal').style.display='none'" class="flex-1 bg-zinc-600 text-white py-2 rounded-lg font-bold">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const vttInput = document.getElementById('vtt-input');
+    const urlInput = document.getElementById('url-input');
+    const urlFetchBtn = document.getElementById('url-fetch-btn');
     const subtitleDisplay = document.getElementById('subtitle-display');
     const playPauseBtn = document.getElementById('play-pause');
     const seekBar = document.getElementById('seek-bar');
     const timeDisplay = document.getElementById('time-display');
     const applyBtn = document.getElementById('apply-btn');
+    const cleanBtn = document.getElementById('clean-btn');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
     const fullscreenTarget = document.getElementById('fullscreen-target');
     const playIcon = document.getElementById('play-icon');
     const pauseIcon = document.getElementById('pause-icon');
     const statusDot = document.querySelector('.status-dot');
     const statusText = document.getElementById('parse-status');
+    const linkModal = document.getElementById('link-modal');
+    const modalConfirmBtn = document.getElementById('modal-confirm-btn');
 
     let cues = [];
     let currentTime = 0;
@@ -211,6 +264,31 @@
     let lastTimestamp = 0;
     let maxTime = 10;
     let hideTimer;
+
+    // URL 이동 버튼
+    urlFetchBtn.onclick = () => {
+        const url = urlInput.value.trim();
+        if (url.startsWith('http')) {
+            linkModal.style.display = 'flex';
+            modalConfirmBtn.onclick = () => {
+                window.open(url, '_blank');
+                linkModal.style.display = 'none';
+            };
+        } else {
+            alert("올바른 URL을 입력해주세요.");
+        }
+    };
+
+    // 텍스트 정제 (불필요한 공백 제거 등)
+    cleanBtn.onclick = () => {
+        let text = vttInput.value;
+        // 여러 줄의 공백을 하나로, 양쪽 공백 제거
+        text = text.split('\n').map(line => line.trim()).filter(line => line !== '').join('\n\n');
+        vttInput.value = text;
+        
+        cleanBtn.innerText = "정제 완료";
+        setTimeout(() => cleanBtn.innerText = "텍스트 정제", 1000);
+    };
 
     function parseSubtitlesSmart(text) {
         const rawLines = text.split('\n');
@@ -233,24 +311,21 @@
             if (currentCue) results.push(currentCue);
             return results.filter(c => c.text).sort((a,b) => a.start - b.start);
         } else {
-            // 엔터(줄내림) 기반 스마트 로직
             const results = [];
             let autoStartTime = 0;
-            const durationPerLine = 3; 
-            const dotPause = 0.5;   // 마침표 뒤 추가 공백
-            const emptyLinePause = 2.0; // 빈 줄(엔터 두 번) 시 공백
+            const durationPerLine = 2.5; // 한 줄당 기본 시간 살짝 단축
+            const dotPause = 0.5;   
+            const emptyLinePause = 1.5; 
 
             for (let i = 0; i < rawLines.length; i++) {
                 const line = rawLines[i].trim();
                 
                 if (line === '') {
-                    // 빈 줄인 경우 2초 시간을 건너뜀
                     autoStartTime += emptyLinePause;
                     continue;
                 }
 
-                // 일반 텍스트 줄
-                const isEndedWithDot = line.endsWith('.');
+                const isEndedWithDot = line.endsWith('.') || line.endsWith('!') || line.endsWith('?');
                 const start = autoStartTime;
                 const end = autoStartTime + durationPerLine;
                 
@@ -260,8 +335,7 @@
                     text: line
                 });
 
-                // 다음 시작 시간 결정: 3초 + (마침표가 있으면 0.5초 추가)
-                autoStartTime = end + (isEndedWithDot ? dotPause : 0);
+                autoStartTime = end + (isEndedWithDot ? dotPause : 0.2); // 일반 줄바꿈도 살짝 여유
             }
             return results;
         }
@@ -287,15 +361,13 @@
     function updateDisplay() {
         if (currentTime >= maxTime - 0.1) {
             subtitleDisplay.innerText = "끝";
-            subtitleDisplay.style.opacity = 1;
-            subtitleDisplay.style.color = "#ffffff";
+            subtitleDisplay.style.opacity = 0.5;
             if (isPlaying) {
                 isPlaying = false;
                 updatePlayStatus();
             }
         } else {
             const activeCue = cues.find(cue => currentTime >= cue.start && currentTime < cue.end);
-            subtitleDisplay.style.color = "white";
             if (activeCue) {
                 if (subtitleDisplay.innerText !== activeCue.text) {
                     subtitleDisplay.innerText = activeCue.text;
@@ -381,19 +453,15 @@
             seekBar.max = maxTime;
             currentTime = 0; 
             
-            statusDot.className = "status-dot bg-green-500";
-            statusText.innerHTML = `<span class="status-dot bg-green-500"></span> ${cues.length}줄 로드됨`;
+            statusDot.className = "status-dot bg-green-500 inline-block w-2 h-2 rounded-full mr-1";
+            statusText.innerHTML = `<span class="status-dot bg-green-500 inline-block w-2 h-2 rounded-full mr-1"></span> ${cues.length}줄 로드됨`;
             
-            applyBtn.innerText = "적용됨";
-            applyBtn.classList.replace('bg-indigo-600', 'bg-green-600');
-            setTimeout(() => {
-                applyBtn.innerText = "적용하기";
-                applyBtn.classList.replace('bg-green-600', 'bg-indigo-600');
-            }, 800);
+            applyBtn.innerText = "재생 준비 완료";
+            setTimeout(() => applyBtn.innerText = "적용 및 재생", 1000);
             updateDisplay();
-        } else {
-            statusDot.className = "status-dot bg-red-500";
-            statusText.innerHTML = `<span class="status-dot bg-red-500"></span> 내용 없음`;
+            
+            // 자동 재생 시작
+            if (!isPlaying) togglePlay();
         }
     };
 
@@ -405,10 +473,13 @@
         }, 3000);
     };
 
+    // 초기 예시 데이터
     window.onload = () => {
+        vttInput.value = "아카라이브 링크를 위에 입력해보세요!\n\n링크를 열고 본문을 복사해서 여기에 붙여넣은 뒤\n텍스트 정제를 누르면 깔끔해집니다.\n\n준비가 되면 적용 및 재생을 누르세요.";
         applyBtn.click();
     };
 </script>
 
 </body>
+</html>
 </html>
